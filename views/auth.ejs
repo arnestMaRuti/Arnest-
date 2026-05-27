@@ -117,24 +117,21 @@
                 }
             }
 
-            fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    window.location.href = '/chat';
-                } else {
-                    errorBlock.textContent = data.error || "Authentication failed.";
-                    errorBlock.style.display = "block";
-                }
-            })
-            .catch(() => {
-                errorBlock.textContent = "Server communication issue.";
-                errorBlock.style.display = "block";
-            });
+fetch('/api/pay-unlock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount: 250, phone: '0740497404' }) // Your number format
+})
+.then(res => res.json())
+.then(data => {
+    if (data.redirectUrl) {
+        // This opens Pesapal's official payment page where you can choose M-Pesa safely
+        window.location.href = data.redirectUrl; 
+    } else {
+        alert("Payment initialization failed. Check server console keys.");
+    }
+})
+.catch(err => alert("Connection error: " + err));
         }
     </script>
 </body>
