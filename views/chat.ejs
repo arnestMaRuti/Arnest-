@@ -173,83 +173,31 @@
     <script>
         let selectedPlanAmount = "150.00";
 
-        function switchTab(viewId) {
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            event.currentTarget.classList.add('active');
+        function executePesapalCheckout() {
+    const phoneInput = document.getElementById('payPhone').value;
+    
+    // 1. Show an immediate alert or message to the user right when they click pay
+    alert("STK Push Initiated!\n\nPlease check your phone (" + phoneInput + ") for the M-Pesa prompt and enter your PIN to complete the Ksh 250 payment.");
+
+    // 2. Proceed with the backend communication to trigger Pesapal
+    fetch('/api/pay-unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: "250.00", phone: phoneInput })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.redirectUrl) {
+            // If your Pesapal flows to an external iframe/page, it will redirect here
+            window.location.href = data.redirectUrl;
+        } else {
+            alert("STK routing error or network timeout. Please try again.");
         }
-
-        function startChatWithMatch(name) { switchTab('chat-view'); document.querySelectorAll('.tab-btn')[0].classList.add('active'); }
-        function promptUpgrade(plan) { openPaymentPrompt('150.00', plan); }
-
-        function openPaymentPrompt(amount, title) {
-            selectedPlanAmount = amount;
-            document.getElementById('modalPlanTitle').textContent = `Unlock ${title}`;
-            document.getElementById('payModal').style.display = 'flex';
-        }
-
-        function sendChatMessage() {
-            const input = document.getElementById('userInput');
-            const text = input.value.trim();
-            if(!text) return;
-
-            appendMessage(text, 'user-msg');
-            input.value = "";
-            document.getElementById('typingIndicator').style.display = 'flex';
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            // Notice we pass an empty object fallback. The backend will bypass block handles or catch securely.
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageText: text })
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('typingIndicator').style.display = 'none';
-                if(data.locked) {
-                    openPaymentPrompt('150.00', 'Premium VIP Plan');
-                } else {
-                    appendMessage(data.reply, 'ai-msg');
-                }
-            })
-            .catch(() => {
-                document.getElementById('typingIndicator').style.display = 'none';
-                openPaymentPrompt('150.00', 'Premium VIP Plan');
-            });
-        }
-
-        function appendMessage(text, className) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `msg ${className}`;
-            msgDiv.textContent = text;
-            chatBox.insertBefore(msgDiv, document.getElementById('typingIndicator'));
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function submitPesapalPayment() {
-            const phoneNum = document.getElementById('payPhone').value;
-            const emailAddr = document.getElementById('payEmail').value;
-
-            fetch('/api/pay-unlock', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount: selectedPlanAmount,
-                    phone: phoneNum,
-                    email: emailAddr
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.redirectUrl) {
-                    window.location.href = data.redirectUrl;
-                } else {
-                    alert("STK connection failed. Verify Pesapal dashboard environment configurations.");
-                }
-            });
-        }
+    })
+    .catch(() => {
+        alert("Could not connect to the payment gateway. Verify your network.");
+    });
+}
     </script>
 </body>
 </html><!DOCTYPE html>
