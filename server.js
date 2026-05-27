@@ -119,7 +119,7 @@ app.post('/api/chat', async (req, res) => {
             return res.status(200).json({ locked: true, msg: "Access locked. Subscription required." });
         }
 
-        if(!process.env.AI_API_KEY) return res.status(200).json({ locked: false, reply: `${partnerName}: Open AI API key is missing from environment variables.` });
+        if(!process.env.AI_API_KEY) return res.status(200).json({ locked: false, reply: `${partnerName}: OpenAI API key is missing from environment variables.` });
 
         const aiRes = await axios.post('https://api.openai.com/v1/chat/completions', {
             model: "gpt-4o-mini",
