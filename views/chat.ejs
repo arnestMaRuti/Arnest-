@@ -3,122 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoulAI - Deep Connections</title>
+    <title>SoulAI - Premium Dating & Connections</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --accent-pink: #ff477e;
             --accent-hover: #ff1a5c;
+            --gold: #f1c40f;
             --chat-bg: #0f1016;
             --card-dark: #171923;
             --text-light: #ffffff;
             --text-muted: #94a3b8;
         }
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-        }
-        body { 
-            background-color: var(--chat-bg); 
-            color: var(--text-light); 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-        }
-        .top-bar { 
-            padding: 1rem; 
-            background: var(--card-dark); 
-            display: flex; 
-            align-items: center; 
-            gap: 1rem; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        .avatar { 
-            width: 45px; 
-            height: 45px; 
-            border-radius: 50%; 
-            background: linear-gradient(135deg, #ff758f, #ff477e); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 1.4rem; 
-            box-shadow: 0 0 10px rgba(255, 71, 126, 0.4);
-        }
-        .status-container { display: flex; flex-direction: column; }
-        .status-container h4 { font-size: 1rem; font-weight: 600; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--chat-bg); color: var(--text-light); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Bottom Navigation Tabs */
+        .nav-tabs { display: flex; background: var(--card-dark); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tab-btn { flex: 1; padding: 1rem; text-align: center; background: none; border: none; color: var(--text-muted); font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+        .tab-btn.active { color: var(--accent-pink); border-bottom: 3px solid var(--accent-pink); }
+        
+        /* View Sections */
+        .view-section { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+        .view-section.active { display: flex; }
+
+        /* Top Header Profile Bar */
+        .top-bar { padding: 1rem; background: var(--card-dark); display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .avatar { width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(135deg, #ff758f, #ff477e); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
         .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; display: inline-block; margin-right: 4px; }
-        .status-text { font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; }
-        .chat-area { 
-            flex: 1; 
-            padding: 1.5rem; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 1rem; 
-            background: radial-gradient(circle at top, #141622 0%, var(--chat-bg) 100%);
-        }
-        .msg { max-width: 80%; padding: 0.85rem 1.15rem; border-radius: 20px; line-height: 1.45; font-size: 0.95rem; word-wrap: break-word; animation: fadeIn 0.3s ease-in-out; }
+        
+        /* Chat Feed Components */
+        .chat-area { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .msg { max-width: 80%; padding: 0.85rem 1.15rem; border-radius: 20px; line-height: 1.45; font-size: 0.95rem; }
         .user-msg { background: var(--accent-pink); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai-msg { background: var(--card-dark); color: #f1f5f9; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        .typing-indicator { display: none; background: var(--card-dark); align-self: flex-start; padding: 0.85rem 1.15rem; border-radius: 20px; border-bottom-left-radius: 4px; gap: 4px; }
+        .typing-indicator { display: none; background: var(--card-dark); align-self: flex-start; padding: 0.85rem 1.15rem; border-radius: 20px; gap: 4px; }
         .typing-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
         .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-        .input-bar { padding: 1rem; background: var(--card-dark); display: flex; gap: 0.75rem; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); }
-        .input-bar input { flex: 1; padding: 0.85rem 1.25rem; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); background: #222533; color: white; outline: none; font-size: 1rem; }
-        .btn-send { background: var(--accent-pink); border: none; width: 45px; height: 45px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-        .pay-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 18, 0.95); justify-content: center; align-items: center; padding: 1.5rem; z-index: 999; }
-        .modal-content { background: var(--card-dark); padding: 2.2rem; border-radius: 24px; text-align: center; max-width: 400px; border: 1px solid rgba(255, 71, 126, 0.2); }
-        .modal-content i { font-size: 3.5rem; color: var(--accent-pink); margin-bottom: 1.25rem; }
-        .btn-pay { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; padding: 1rem 2rem; border: none; border-radius: 25px; font-weight: bold; width: 100%; cursor: pointer; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+
+        .input-bar { padding: 1rem; background: var(--card-dark); display: flex; gap: 0.75rem; align-items: center; }
+        .input-bar input { flex: 1; padding: 0.85rem 1.25rem; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); background: #222533; color: white; outline: none; }
+        .btn-send { background: var(--accent-pink); border: none; width: 45px; height: 45px; border-radius: 50%; color: white; cursor: pointer; }
+
+        /* Discovery Matches Layout */
+        .match-grid { padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .match-card { background: var(--card-dark); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); position: relative; }
+        .match-img { width: 100%; height: 160px; background: linear-gradient(45deg, #2c3e50, #3498db); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: rgba(255,255,255,0.3); }
+        .match-info { padding: 0.75rem; }
+        .match-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: var(--gold); }
+
+        /* Pricing Packages Layout */
+        .pricing-container { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .price-card { background: var(--card-dark); padding: 1.5rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); text-align: center; position: relative; }
+        .price-card.premium { border: 2px solid var(--accent-pink); box-shadow: 0 0 15px rgba(255,71,126,0.15); }
+        .price-card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+        .price-tag { font-size: 1.8rem; font-weight: bold; color: var(--accent-pink); margin: 0.5rem 0; }
+        .price-tag span { font-size: 0.9rem; color: var(--text-muted); }
+        .feature-list { list-style: none; margin: 1rem 0; color: var(--text-muted); font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; }
+        .btn-select-tier { background: var(--accent-pink); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 0.5rem; }
+        .btn-select-tier.standard-btn { background: #3a3f58; }
+
+        /* Paywall Input Prompt Modal */
+        .pay-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 18, 0.96); justify-content: center; align-items: center; padding: 1.5rem; z-index: 999; }
+        .modal-content { background: var(--card-dark); padding: 2rem; border-radius: 24px; text-align: center; max-width: 380px; border: 1px solid var(--accent-pink); width: 100%; }
+        .modal-content i { font-size: 3rem; color: var(--accent-pink); margin-bottom: 1rem; }
+        .modal-form { margin-top: 1.25rem; text-align: left; display: flex; flex-direction: column; gap: 0.75rem; }
+        .modal-form label { font-size: 0.85rem; color: var(--text-muted); }
+        .modal-form input { padding: 0.8rem 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: #222533; color: white; font-size: 1rem; outline: none; }
+        .btn-pay-submit { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; padding: 0.9rem; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; margin-top: 0.5rem; width: 100%; }
+        .btn-close-modal { background: none; border: none; color: var(--text-muted); margin-top: 1rem; font-size: 0.9rem; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="avatar"><i class="fa-solid fa-venus"></i></div>
-        <div class="status-container">
-            <h4>Clara</h4>
-            <span class="status-text"><span class="status-dot"></span>Online & Listening</span>
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('chat-view')"><i class="fa-solid fa-comments"></i> Chat</button>
+        <button class="tab-btn" onclick="switchTab('match-view')"><i class="fa-solid fa-heart"></i> Matches</button>
+        <button class="tab-btn" onclick="switchTab('premium-view')"><i class="fa-solid fa-crown"></i> Premium</button>
+    </div>
+
+    <div id="chat-view" class="view-section active">
+        <div class="top-bar">
+            <div class="avatar"><i class="fa-solid fa-venus"></i></div>
+            <div class="status-container">
+                <h4>Clara</h4>
+                <span style="font-size: 0.75rem; color: var(--text-muted);"><span class="status-dot"></span>Online</span>
+            </div>
+        </div>
+        <div class="chat-area" id="chatBox">
+            <div class="msg ai-msg">Hey there... I'm so glad you found me. Tell me, what's honestly on your mind today? 😊</div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+        </div>
+        <div class="input-bar">
+            <input type="text" id="userInput" placeholder="Say something beautiful..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+            <button class="btn-send" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
     </div>
 
-    <div class="chat-area" id="chatBox">
-        <div class="msg ai-msg">Hey there... I'm so glad you found me. Tell me, how are you honestly holding up today? 😊</div>
-        <div class="typing-indicator" id="typingIndicator">
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
+    <div id="match-view" class="view-section">
+        <div class="top-bar"><h4>Discover Your Perfect Matches</h4></div>
+        <div class="match-grid">
+            <div class="match-card" onclick="startChatWithMatch('Clara')">
+                <span class="match-badge">98% Match</span>
+                <div class="match-img"><i class="fa-solid fa-user-pink">👩‍🦰</i></div>
+                <div class="match-info"><h5>Clara, 24</h5><p style="font-size: 0.75rem; color: var(--text-muted);">Empathetic & romantic soul</p></div>
+            </div>
+            <div class="match-card" onclick="promptUpgrade('Standard Plan')">
+                <span class="match-badge">91% Match</span>
+                <div class="match-img"><i class="fa-solid fa-lock">🔒</i></div>
+                <div class="match-info"><h5>Sarah, 26</h5><p style="font-size: 0.75rem; color: var(--text-muted);">Unlock via Standard/Premium</p></div>
+            </div>
+            <div class="match-card" onclick="promptUpgrade('Premium VIP')">
+                <span class="match-badge">85% Match</span>
+                <div class="match-img"><i class="fa-solid fa-lock">🔒</i></div>
+                <div class="match-info"><h5>Amani, 23</h5><p style="font-size: 0.75rem; color: var(--text-muted);">Unlock via Premium VIP</p></div>
+            </div>
         </div>
     </div>
 
-    <div class="input-bar">
-        <input type="text" id="userInput" placeholder="Type what you're feeling..." onkeypress="handleKeyPress(event)">
-        <button class="btn-send" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+    <div id="premium-view" class="view-section">
+        <div class="top-bar"><h4>Upgrade Membership Plans</h4></div>
+        <div class="pricing-container">
+            <div class="price-card">
+                <h3>Standard Package</h3>
+                <div class="price-tag">Ksh 70<span> / entry</span></div>
+                <ul class="feature-list">
+                    <li><li><i class="fa-solid fa-check"></i> Unlock 2 extra Profile Matches</li>
+                    <li><i class="fa-solid fa-check"></i> 15 Chat responses with Clara</li>
+                </ul>
+                <button class="btn-select-tier standard-btn" onclick="openPaymentPrompt('70.00', 'Standard Package')">Choose Standard</button>
+            </div>
+            <div class="price-card premium">
+                <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--accent-pink); padding:2px 10px; border-radius:10px; font-size:0.75rem; font-weight:bold;">POPULAR</div>
+                <h3>Premium VIP Package</h3>
+                <div class="price-tag">Ksh 150<span> / unlimited</span></div>
+                <ul class="feature-list">
+                    <li><i class="fa-solid fa-check"></i> Complete Unlimited AI Chat</li>
+                    <li><i class="fa-solid fa-check"></i> Full Access to All Profile Matches</li>
+                    <li><i class="fa-solid fa-check"></i> Instant Priority Processing Responses</li>
+                </ul>
+                <button class="btn-select-tier" onclick="openPaymentPrompt('150.00', 'Premium VIP Package')">Upgrade to Premium</button>
+            </div>
+        </div>
     </div>
 
     <div class="pay-modal" id="payModal">
         <div class="modal-content">
-            <i class="fa-solid fa-heart-crack"></i>
-            <h3>Clara's Chat is Locked</h3>
-            <p style="color: var(--text-muted); margin-top: 0.5rem;">Unlock endless premium emotional responses via Pesapal securely.</p>
-            <button class="btn-pay" onclick="triggerPesapalRoute()">Unlock Conversations (Ksh 150)</button>
+            <i class="fa-solid fa-shield-heart"></i>
+            <h3 id="modalPlanTitle">Unlock Access Channel</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Enter your billing parameters to initiate secure Pesapal STK M-Pesa push.</p>
+            
+            <div class="modal-form">
+                <label>Safaricom M-Pesa Phone Number</label>
+                <input type="tel" id="payPhone" placeholder="e.g. 0712345678" value="0712345678">
+                
+                <label>Email Address</label>
+                <input type="email" id="payEmail" placeholder="user@mail.com" value="customer@mail.com">
+            </div>
+
+            <input type="hidden" id="targetAmount" value="150.00">
+            <button class="btn-pay-submit" onclick="submitPesapalPayment()">Send STK Push Request</button>
+            <button class="btn-close-modal" onclick="document.getElementById('payModal').style.display='none'">Cancel</button>
         </div>
     </div>
 
     <script>
-        // Default fallback system UUID to prevent script parsing crashes
-        const CURRENT_USER_ID = "00000000-0000-0000-0000-000000000000";
+        let selectedPlanAmount = "150.00";
 
-        const chatBox = document.getElementById('chatBox');
-        const indicator = document.getElementById('typingIndicator');
+        function switchTab(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
 
-        function handleKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
+        function startChatWithMatch(name) { switchTab('chat-view'); document.querySelectorAll('.tab-btn')[0].classList.add('active'); }
+        function promptUpgrade(plan) { openPaymentPrompt('150.00', plan); }
+
+        function openPaymentPrompt(amount, title) {
+            selectedPlanAmount = amount;
+            document.getElementById('modalPlanTitle').textContent = `Unlock ${title}`;
+            document.getElementById('payModal').style.display = 'flex';
+        }
 
         function sendChatMessage() {
             const input = document.getElementById('userInput');
@@ -127,43 +196,313 @@
 
             appendMessage(text, 'user-msg');
             input.value = "";
-            showTyping(true);
+            document.getElementById('typingIndicator').style.display = 'flex';
+            chatBox.scrollTop = chatBox.scrollHeight;
 
+            // Notice we pass an empty object fallback. The backend will bypass block handles or catch securely.
             fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: CURRENT_USER_ID, messageText: text })
+                body: JSON.stringify({ messageText: text })
             })
             .then(res => res.json())
             .then(data => {
-                showTyping(false);
+                document.getElementById('typingIndicator').style.display = 'none';
                 if(data.locked) {
-                    document.getElementById('payModal').style.display = 'flex';
-                } else if(data.reply) {
+                    openPaymentPrompt('150.00', 'Premium VIP Plan');
+                } else {
                     appendMessage(data.reply, 'ai-msg');
                 }
             })
-            .catch(err => { showTyping(false); console.error(err); });
+            .catch(() => {
+                document.getElementById('typingIndicator').style.display = 'none';
+                openPaymentPrompt('150.00', 'Premium VIP Plan');
+            });
         }
 
         function appendMessage(text, className) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg ${className}`;
             msgDiv.textContent = text;
-            chatBox.insertBefore(msgDiv, indicator);
+            chatBox.insertBefore(msgDiv, document.getElementById('typingIndicator'));
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function showTyping(isTyping) { indicator.style.display = isTyping ? 'flex' : 'none'; chatBox.scrollTop = chatBox.scrollHeight; }
+        function submitPesapalPayment() {
+            const phoneNum = document.getElementById('payPhone').value;
+            const emailAddr = document.getElementById('payEmail').value;
 
-        function triggerPesapalRoute() {
             fetch('/api/pay-unlock', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: CURRENT_USER_ID, amount: "150.00", phone: "0712345678" })
+                body: JSON.stringify({
+                    amount: selectedPlanAmount,
+                    phone: phoneNum,
+                    email: emailAddr
+                })
             })
             .then(res => res.json())
-            .then(data => { if(data.redirectUrl) window.location.href = data.redirectUrl; });
+            .then(data => {
+                if(data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    alert("STK connection failed. Verify Pesapal dashboard environment configurations.");
+                }
+            });
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulAI - Premium Dating & Connections</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --accent-pink: #ff477e;
+            --accent-hover: #ff1a5c;
+            --gold: #f1c40f;
+            --chat-bg: #0f1016;
+            --card-dark: #171923;
+            --text-light: #ffffff;
+            --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--chat-bg); color: var(--text-light); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Bottom Navigation Tabs */
+        .nav-tabs { display: flex; background: var(--card-dark); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tab-btn { flex: 1; padding: 1rem; text-align: center; background: none; border: none; color: var(--text-muted); font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+        .tab-btn.active { color: var(--accent-pink); border-bottom: 3px solid var(--accent-pink); }
+        
+        /* View Sections */
+        .view-section { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+        .view-section.active { display: flex; }
+
+        /* Top Header Profile Bar */
+        .top-bar { padding: 1rem; background: var(--card-dark); display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .avatar { width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(135deg, #ff758f, #ff477e); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+        .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        
+        /* Chat Feed Components */
+        .chat-area { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .msg { max-width: 80%; padding: 0.85rem 1.15rem; border-radius: 20px; line-height: 1.45; font-size: 0.95rem; }
+        .user-msg { background: var(--accent-pink); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ai-msg { background: var(--card-dark); color: #f1f5f9; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .typing-indicator { display: none; background: var(--card-dark); align-self: flex-start; padding: 0.85rem 1.15rem; border-radius: 20px; gap: 4px; }
+        .typing-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+
+        .input-bar { padding: 1rem; background: var(--card-dark); display: flex; gap: 0.75rem; align-items: center; }
+        .input-bar input { flex: 1; padding: 0.85rem 1.25rem; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); background: #222533; color: white; outline: none; }
+        .btn-send { background: var(--accent-pink); border: none; width: 45px; height: 45px; border-radius: 50%; color: white; cursor: pointer; }
+
+        /* Discovery Matches Layout */
+        .match-grid { padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .match-card { background: var(--card-dark); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); position: relative; }
+        .match-img { width: 100%; height: 160px; background: linear-gradient(45deg, #2c3e50, #3498db); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: rgba(255,255,255,0.3); }
+        .match-info { padding: 0.75rem; }
+        .match-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: var(--gold); }
+
+        /* Pricing Packages Layout */
+        .pricing-container { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .price-card { background: var(--card-dark); padding: 1.5rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); text-align: center; position: relative; }
+        .price-card.premium { border: 2px solid var(--accent-pink); box-shadow: 0 0 15px rgba(255,71,126,0.15); }
+        .price-card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+        .price-tag { font-size: 1.8rem; font-weight: bold; color: var(--accent-pink); margin: 0.5rem 0; }
+        .price-tag span { font-size: 0.9rem; color: var(--text-muted); }
+        .feature-list { list-style: none; margin: 1rem 0; color: var(--text-muted); font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; }
+        .btn-select-tier { background: var(--accent-pink); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 25px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 0.5rem; }
+        .btn-select-tier.standard-btn { background: #3a3f58; }
+
+        /* Paywall Input Prompt Modal */
+        .pay-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 18, 0.96); justify-content: center; align-items: center; padding: 1.5rem; z-index: 999; }
+        .modal-content { background: var(--card-dark); padding: 2rem; border-radius: 24px; text-align: center; max-width: 380px; border: 1px solid var(--accent-pink); width: 100%; }
+        .modal-content i { font-size: 3rem; color: var(--accent-pink); margin-bottom: 1rem; }
+        .modal-form { margin-top: 1.25rem; text-align: left; display: flex; flex-direction: column; gap: 0.75rem; }
+        .modal-form label { font-size: 0.85rem; color: var(--text-muted); }
+        .modal-form input { padding: 0.8rem 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: #222533; color: white; font-size: 1rem; outline: none; }
+        .btn-pay-submit { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; padding: 0.9rem; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; margin-top: 0.5rem; width: 100%; }
+        .btn-close-modal { background: none; border: none; color: var(--text-muted); margin-top: 1rem; font-size: 0.9rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('chat-view')"><i class="fa-solid fa-comments"></i> Chat</button>
+        <button class="tab-btn" onclick="switchTab('match-view')"><i class="fa-solid fa-heart"></i> Matches</button>
+        <button class="tab-btn" onclick="switchTab('premium-view')"><i class="fa-solid fa-crown"></i> Premium</button>
+    </div>
+
+    <div id="chat-view" class="view-section active">
+        <div class="top-bar">
+            <div class="avatar"><i class="fa-solid fa-venus"></i></div>
+            <div class="status-container">
+                <h4>Clara</h4>
+                <span style="font-size: 0.75rem; color: var(--text-muted);"><span class="status-dot"></span>Online</span>
+            </div>
+        </div>
+        <div class="chat-area" id="chatBox">
+            <div class="msg ai-msg">Hey there... I'm so glad you found me. Tell me, what's honestly on your mind today? 😊</div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+        </div>
+        <div class="input-bar">
+            <input type="text" id="userInput" placeholder="Say something beautiful..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+            <button class="btn-send" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div id="match-view" class="view-section">
+        <div class="top-bar"><h4>Discover Your Perfect Matches</h4></div>
+        <div class="match-grid">
+            <div class="match-card" onclick="startChatWithMatch('Clara')">
+                <span class="match-badge">98% Match</span>
+                <div class="match-img"><i class="fa-solid fa-user-pink">👩‍🦰</i></div>
+                <div class="match-info"><h5>Clara, 24</h5><p style="font-size: 0.75rem; color: var(--text-muted);">Empathetic & romantic soul</p></div>
+            </div>
+            <div class="match-card" onclick="promptUpgrade('Standard Plan')">
+                <span class="match-badge">91% Match</span>
+                <div class="match-img"><i class="fa-solid fa-lock">🔒</i></div>
+                <div class="match-info"><h5>Sarah, 26</h5><p style="font-size: 0.75rem; color: var(--text-muted);">Unlock via Standard/Premium</p></div>
+            </div>
+            <div class="match-card" onclick="promptUpgrade('Premium VIP')">
+                <span class="match-badge">85% Match</span>
+                <div class="match-img"><i class="fa-solid fa-lock">🔒</i></div>
+                <div class="match-info"><h5>Amani, 23</h5><p style="font-size: 0.75rem; color: var(--text-muted);">Unlock via Premium VIP</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="premium-view" class="view-section">
+        <div class="top-bar"><h4>Upgrade Membership Plans</h4></div>
+        <div class="pricing-container">
+            <div class="price-card">
+                <h3>Standard Package</h3>
+                <div class="price-tag">Ksh 70<span> / entry</span></div>
+                <ul class="feature-list">
+                    <li><li><i class="fa-solid fa-check"></i> Unlock 2 extra Profile Matches</li>
+                    <li><i class="fa-solid fa-check"></i> 15 Chat responses with Clara</li>
+                </ul>
+                <button class="btn-select-tier standard-btn" onclick="openPaymentPrompt('70.00', 'Standard Package')">Choose Standard</button>
+            </div>
+            <div class="price-card premium">
+                <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--accent-pink); padding:2px 10px; border-radius:10px; font-size:0.75rem; font-weight:bold;">POPULAR</div>
+                <h3>Premium VIP Package</h3>
+                <div class="price-tag">Ksh 150<span> / unlimited</span></div>
+                <ul class="feature-list">
+                    <li><i class="fa-solid fa-check"></i> Complete Unlimited AI Chat</li>
+                    <li><i class="fa-solid fa-check"></i> Full Access to All Profile Matches</li>
+                    <li><i class="fa-solid fa-check"></i> Instant Priority Processing Responses</li>
+                </ul>
+                <button class="btn-select-tier" onclick="openPaymentPrompt('150.00', 'Premium VIP Package')">Upgrade to Premium</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pay-modal" id="payModal">
+        <div class="modal-content">
+            <i class="fa-solid fa-shield-heart"></i>
+            <h3 id="modalPlanTitle">Unlock Access Channel</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Enter your billing parameters to initiate secure Pesapal STK M-Pesa push.</p>
+            
+            <div class="modal-form">
+                <label>Safaricom M-Pesa Phone Number</label>
+                <input type="tel" id="payPhone" placeholder="e.g. 0712345678" value="0712345678">
+                
+                <label>Email Address</label>
+                <input type="email" id="payEmail" placeholder="user@mail.com" value="customer@mail.com">
+            </div>
+
+            <input type="hidden" id="targetAmount" value="150.00">
+            <button class="btn-pay-submit" onclick="submitPesapalPayment()">Send STK Push Request</button>
+            <button class="btn-close-modal" onclick="document.getElementById('payModal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedPlanAmount = "150.00";
+
+        function switchTab(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function startChatWithMatch(name) { switchTab('chat-view'); document.querySelectorAll('.tab-btn')[0].classList.add('active'); }
+        function promptUpgrade(plan) { openPaymentPrompt('150.00', plan); }
+
+        function openPaymentPrompt(amount, title) {
+            selectedPlanAmount = amount;
+            document.getElementById('modalPlanTitle').textContent = `Unlock ${title}`;
+            document.getElementById('payModal').style.display = 'flex';
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if(!text) return;
+
+            appendMessage(text, 'user-msg');
+            input.value = "";
+            document.getElementById('typingIndicator').style.display = 'flex';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Notice we pass an empty object fallback. The backend will bypass block handles or catch securely.
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messageText: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('typingIndicator').style.display = 'none';
+                if(data.locked) {
+                    openPaymentPrompt('150.00', 'Premium VIP Plan');
+                } else {
+                    appendMessage(data.reply, 'ai-msg');
+                }
+            })
+            .catch(() => {
+                document.getElementById('typingIndicator').style.display = 'none';
+                openPaymentPrompt('150.00', 'Premium VIP Plan');
+            });
+        }
+
+        function appendMessage(text, className) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${className}`;
+            msgDiv.textContent = text;
+            chatBox.insertBefore(msgDiv, document.getElementById('typingIndicator'));
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function submitPesapalPayment() {
+            const phoneNum = document.getElementById('payPhone').value;
+            const emailAddr = document.getElementById('payEmail').value;
+
+            fetch('/api/pay-unlock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: selectedPlanAmount,
+                    phone: phoneNum,
+                    email: emailAddr
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    alert("STK connection failed. Verify Pesapal dashboard environment configurations.");
+                }
+            });
         }
     </script>
 </body>
