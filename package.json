@@ -1,0 +1,19 @@
+{
+  "name": "best_soulmates",
+  "version": "1.0.0",
+  "description": "Premium AI Dating Platform with Pay-to-Unlock Pesapal Integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
