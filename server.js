@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
     res.render('chat', { user: (req.session && req.session.user) ? req.session.user : null });
 });
 
-// ROUTE 2: Authentication Handlers (Perfectly aligned to your phone and username columns)
+// ROUTE 2: Authentication Handlers (Ultra-Safe Alignment)
 app.post('/api/auth', async (req, res) => {
     const { username, phone, isSignUp } = req.body;
     
@@ -48,27 +48,40 @@ app.post('/api/auth', async (req, res) => {
             const { data: existing } = await supabase
                 .from('dating_users')
                 .select('*')
-                .or(`username.eq.${username},phone.eq.${phone}`)
+                .eq('username', username)
                 .maybeSingle();
 
             if (existing) {
                 return res.status(400).json({ success: false, error: "Username or Phone number already registered." });
             }
 
-            // Inserts matching EXACTLY your newly created database columns
+            // STRATEGY A: Try saving ONLY the absolute core fields (username and phone)
             const { data: newUser, error: insertError } = await supabase
+                .from('dating_users')
+                .insert([{ username: username, phone: phone }])
+                .select()
+                .maybeSingle();
+
+            if (!insertError && newUser) {
+                req.session.user = newUser;
+                return res.status(200).json({ success: true, user: newUser });
+            }
+
+            // STRATEGY B: Fallback insert if column requirements vary
+            console.error("Primary schema insert failed, attempting strategy B layout...", insertError);
+            const { data: fallbackUser, error: fallbackError } = await supabase
                 .from('dating_users')
                 .insert([{ username: username, phone: phone, is_premium_unlocked: false }])
                 .select()
                 .maybeSingle();
 
-            if (insertError) {
-                console.error("Signup Database Schema Error Log:", insertError);
-                return res.status(400).json({ success: false, error: "Database rejected entry parameters. Verify alignment." });
+            if (fallbackError) {
+                console.error("All insertion strategies rejected by database layout:", fallbackError);
+                return res.status(400).json({ success: false, error: "Database rejected properties. Please check table columns." });
             }
 
-            req.session.user = newUser;
-            return res.status(200).json({ success: true, user: newUser });
+            req.session.user = fallbackUser;
+            return res.status(200).json({ success: true, user: fallbackUser });
 
         } else {
             // Sign In Logic matching user username parameters
@@ -91,7 +104,6 @@ app.post('/api/auth', async (req, res) => {
         return res.status(500).json({ success: false, error: "Internal server authentication exception error." });
     }
 });
-
 app.get('/logout', (req, res) => { req.session = null; res.redirect('/'); });
 
 // ROUTE 3: Secure AI Chat Endpoint with Premium Access Check Filter
