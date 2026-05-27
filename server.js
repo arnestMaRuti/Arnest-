@@ -102,8 +102,8 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // ROUTE 3: Request Access Token and Generate Pesapal Payment Link
-app.post('/api/pay-unlock', async (req, res) => {
-    const {const express = require('express');
+app.post('/api/pay-unlock', async (req, res) =>
+const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const path = require('path');
