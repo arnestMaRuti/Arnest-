@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulAI - Welcome</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --accent-pink: #ff477e;
+            --accent-hover: #ff1a5c;
+            --bg-dark: #0f1016;
+            --card-dark: #171923;
+            --text-light: #ffffff;
+            --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-light); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+        .auth-container { background: var(--card-dark); padding: 2.5rem 2rem; border-radius: 24px; max-width: 400px; width: 100%; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .brand { text-align: center; margin-bottom: 2rem; }
+        .brand i { font-size: 3rem; color: var(--accent-pink); margin-bottom: 0.5rem; }
+        .brand h2 { font-size: 1.8rem; font-weight: bold; }
+        .brand p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
+        .form-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        .form-group input { padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: #222533; color: white; font-size: 1rem; outline: none; transition: border 0.2s; }
+        .form-group input:focus { border-color: var(--accent-pink); }
+        .btn-auth { background: var(--accent-pink); color: white; border: none; padding: 1rem; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 0.5rem; transition: background 0.2s; }
+        .btn-auth:hover { background: var(--accent-hover); }
+        .toggle-link { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted); }
+        .toggle-link span { color: var(--accent-pink); cursor: pointer; font-weight: bold; }
+        .error-msg { color: #edge; background: rgba(231, 76, 60, 0.1); padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; text-align: center; margin-bottom: 1rem; display: none; color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="brand">
+            <i class="fa-solid fa-heart-pulse"></i>
+            <h2 id="authTitle">Create Account</h2>
+            <p id="authSubtitle">Join SoulAI to find deep romantic connections</p>
+        </div>
+
+        <div class="error-msg" id="errorBlock"></div>
+
+        <form id="authForm" onsubmit="handleAuthSubmit(event)">
+            <div class="form-group" id="nameField">
+                <label>Full Name</label>
+                <input type="text" id="authName" placeholder="John Doe">
+            </div>
+            
+            <div class="form-group" id="phoneField">
+                <label>Safaricom Phone Number (For M-Pesa)</label>
+                <input type="tel" id="authPhone" placeholder="e.g. 0712345678">
+            </div>
+
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="authUsername" placeholder="johndoe123" required>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="authPassword" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-auth" id="authBtn">Sign Up</button>
+        </form>
+
+        <div class="toggle-link">
+            <p id="toggleText">Already have an account? <span onclick="toggleAuthMode()">Sign In</span></p>
+        </div>
+    </div>
+
+    <script>
+        let isSignUpMode = true;
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('errorBlock').style.display = 'none';
+            
+            if (isSignUpMode) {
+                document.getElementById('authTitle').textContent = "Create Account";
+                document.getElementById('authSubtitle').textContent = "Join SoulAI to find deep romantic connections";
+                document.getElementById('nameField').style.display = "flex";
+                document.getElementById('phoneField').style.display = "flex";
+                document.getElementById('authBtn').textContent = "Sign Up";
+                document.getElementById('toggleText').innerHTML = `Already have an account? <span onclick="toggleAuthMode()">Sign In</span>`;
+            } else {
+                document.getElementById('authTitle').textContent = "Welcome Back";
+                document.getElementById('authSubtitle').textContent = "Sign in to access your chat configurations";
+                document.getElementById('nameField').style.display = "none";
+                document.getElementById('phoneField').style.display = "none";
+                document.getElementById('authBtn').textContent = "Sign In";
+                document.getElementById('toggleText').innerHTML = `Don't have an account? <span onclick="toggleAuthMode()">Sign Up</span>`;
+            }
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const errorBlock = document.getElementById('errorBlock');
+            errorBlock.style.display = 'none';
+
+            const endpoint = isSignUpMode ? '/api/signup' : '/api/signin';
+            const payload = {
+                username: document.getElementById('authUsername').value.trim(),
+                password: document.getElementById('authPassword').value
+            };
+
+            if (isSignUpMode) {
+                payload.name = document.getElementById('authName').value.trim();
+                payload.phone = document.getElementById('authPhone').value.trim();
+                if(!payload.name || !payload.phone) {
+                    errorBlock.textContent = "Please fill in all details.";
+                    errorBlock.style.display = "block";
+                    return;
+                }
+            }
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    window.location.href = '/chat';
+                } else {
+                    errorBlock.textContent = data.error || "Authentication failed.";
+                    errorBlock.style.display = "block";
+                }
+            })
+            .catch(() => {
+                errorBlock.textContent = "Server communication issue.";
+                errorBlock.style.display = "block";
+            });
+        }
+    </script>
+</body>
+</html>
