@@ -43,7 +43,7 @@ app.post('/api/auth', async (req, res) => {
             const { data: existing, error: checkError } = await supabase
                 .from('dating_users')
                 .select('*')
-                .or(`username.eq.${username},phone_number.eq.${phone}`)
+                .or(`username.eq.${username},phone_number.eq.${phone_number}`)
                 .maybeSingle();
 
             if (existing) {
