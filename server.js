@@ -14,8 +14,8 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Initialize Supabase Database Client
 const supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_ANON_KEY || ''
+    process.env.SUPABASE_URL || 'https://qzvjqhfhdrneaozntlpi.supabase.co',
+    process.env.SUPABASE_ANON_KEY || 'sb_publishable_2al4UI2qxXq10kIM4gRUkQ_bToLvrbp'
 );
 
 // Pesapal Configuration API Links
