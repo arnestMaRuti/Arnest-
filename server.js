@@ -34,21 +34,6 @@ app.get('/', (req, res) => {
     res.render('chat', { user: (req.session && req.session.user) ? req.session.user : null });
 });
 
-// ROUTE 2: Authentication Handlers (Ultra-Safe Alignment)
-app.post('/api/auth', async (req, res) => {
-    const { username, phone, isSignUp } = req.body;
-    
-    if (!username || !phone) {
-        return res.status(400).json({ success: false, error: "Username and Phone number are required." });
-    }
-
-    try {
-        if (isSignUp) {
-            // Check if profile details already exist inside your database row records
-            const { data: existing } = await supabase
-                .from('dating_users')
-                .select('*')
-                .eq('username', username)
 // ROUTE 2: Authentication Handlers (Syntax-Safe Separation)
 app.post('/api/auth', async (req, res) => {
     const { username, phone, isSignUp } = req.body;
@@ -81,7 +66,7 @@ app.post('/api/auth', async (req, res) => {
                 return res.status(400).json({ success: false, error: "Phone number is already registered." });
             }
 
-            // 3. Clean insert containing only your active table columns
+            // 3. Clean insert matching your active database table columns
             const { data: newUser, error: insertError } = await supabase
                 .from('dating_users')
                 .insert([{ username: username, phone: phone }])
@@ -120,6 +105,7 @@ app.post('/api/auth', async (req, res) => {
         return res.status(500).json({ success: false, error: "Internal server authentication error." });
     }
 });
+
 app.get('/logout', (req, res) => { req.session = null; res.redirect('/'); });
 
 // ROUTE 3: Secure AI Chat Endpoint with Premium Access Check Filter
