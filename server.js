@@ -19,8 +19,9 @@ app.use(cookieSession({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-const supabase = createClient(process.env.SUPABASE_URL || 'https://qzvjqhfhdrneaozntlpi.supabase.co', process.env.SUPABASE_ANON_KEY || 'sb_publishable_2al4UI2qxXq10kIM4gRUkQ_bToLvrbp'');
-
+const supabase = createClient(process.env.SUPABASE_URL ||
+const SUPABASE_URL = process.env.SUPABASE_URL ||'https://qzvjqhfhdrneaozntlpi.supabase.co',
+const SUPABASE_URL = process.env.SUPABASE_ANON_KEY || 'sb_publishable_2al4UI2qxXq10kIM4gRUkQ_bToLvrbp'');
 const PESAPAL_CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
 const PESAPAL_CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
 const PESAPAL_URL = "https://cybersv.pesapal.com/api"; 
