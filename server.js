@@ -9,106 +9,69 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session storage setup to remember logged in users
+// Session storage configuration to remember logged-in accounts
 app.use(cookieSession({
     name: 'soul_ai_session',
     keys: ['secure-encryption-pass-token-key-string'],
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000 // 24 Hours
 }));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Connects directly to your existing Supabase database configuration
+// Supabase Environment variables initialization
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qzvjqfhfdrneaozntlpi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_2a14UI2qXxQ10kIM4gRUKQ_bToLvrbp';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Pesapal setup endpoints
+// Pesapal parameters setup
 const PESAPAL_CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
 const PESAPAL_CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
 const PESAPAL_URL = "https://cybersv.pesapal.com/api"; 
 
-// ROUTE 1: Main Gateway Redirection
+// ROUTE 1: Primary Gateway Router Control
 app.get('/', (req, res) => {
     res.render('chat', { user: (req.session && req.session.user) ? req.session.user : null });
 });
 
-// ROUTE 2: Authentication Handlers (Interacts with your existing user records)
+// ROUTE 2: Authentication Handlers (Perfectly aligned to your phone and username columns)
 app.post('/api/auth', async (req, res) => {
     const { username, phone, isSignUp } = req.body;
     
-    if (!username) {
-        return res.status(400).json({ success: false, error: "Username is required." });
+    if (!username || !phone) {
+        return res.status(400).json({ success: false, error: "Username and Phone number are required." });
     }
 
     try {
         if (isSignUp) {
-            // 1. Check if username or phone exists (Handles both potential column structures safely)
-            let existingUser = null;
-            
-            const { data: check1 } = await supabase.from('dating_users').select('*').eq('username', username).maybeSingle();
-            if (check1) existingUser = check1;
-
-            if (!existingUser) {
-                const { data: check2 } = await supabase.from('dating_users').select('*').eq('phone_number', phone).maybeSingle();
-                if (check2) existingUser = check2;
-            }
-
-            if (!existingUser) {
-                const { data: check3 } = await supabase.from('dating_users').select('*').eq('phone', phone).maybeSingle();
-                if (check3) existingUser = check3;
-            }
-
-            if (existingUser) {
-                return res.status(400).json({ success: false, error: "Username or phone number already exists." });
-            }
-
-            // 2. Run sequential registration insertion fallbacks
-            // STRATEGY A: Try standard 'phone_number' and 'email_address' layout
-            const { data: userA, error: errA } = await supabase
+            // Check if profile details already exist inside your database row records
+            const { data: existing } = await supabase
                 .from('dating_users')
-                .insert([{ username: username, phone_number: phone, email_address: `${username}@mail.com`, is_premium_unlocked: false }])
+                .select('*')
+                .or(`username.eq.${username},phone.eq.${phone}`)
+                .maybeSingle();
+
+            if (existing) {
+                return res.status(400).json({ success: false, error: "Username or Phone number already registered." });
+            }
+
+            // Inserts matching EXACTLY your newly created database columns
+            const { data: newUser, error: insertError } = await supabase
+                .from('dating_users')
+                .insert([{ username: username, phone: phone, is_premium_unlocked: false }])
                 .select()
                 .maybeSingle();
 
-            if (!errA && userA) {
-                req.session.user = userA;
-                return res.status(200).json({ success: true, user: userA });
+            if (insertError) {
+                console.error("Signup Database Schema Error Log:", insertError);
+                return res.status(400).json({ success: false, error: "Database rejected entry parameters. Verify alignment." });
             }
 
-            // STRATEGY B: Try simple 'phone' and 'email' layout fallback
-            const { data: userB, error: errB } = await supabase
-                .from('dating_users')
-                .insert([{ username: username, phone: phone, email: `${username}@mail.com`, is_premium_unlocked: false }])
-                .select()
-                .maybeSingle();
-
-            if (!errB && userB) {
-                req.session.user = userB;
-                return res.status(200).json({ success: true, user: userB });
-            }
-
-            // STRATEGY C: Minimalist approach (Just Username and Phone)
-            const { data: userC, error: errC } = await supabase
-                .from('dating_users')
-                .insert([{ username: username, phone_number: phone }])
-                .select()
-                .maybeSingle();
-
-            if (!errC && userC) {
-                req.session.user = userC;
-                return res.status(200).json({ success: true, user: userC });
-            }
-
-            // If everything fails, throw the explicit structural rejection trace
-            return res.status(400).json({ 
-                success: false, 
-                error: "Database column mismatch. Please verify that your table has columns named 'username' and either 'phone_number' or 'phone'." 
-            });
+            req.session.user = newUser;
+            return res.status(200).json({ success: true, user: newUser });
 
         } else {
-            // LOGIN FLOW: Find the profile by username entry match
+            // Sign In Logic matching user username parameters
             const { data: user, error: loginErr } = await supabase
                 .from('dating_users')
                 .select('*')
@@ -120,32 +83,34 @@ app.post('/api/auth', async (req, res) => {
             }
 
             req.session.user = user;
-            return res.status(200).json({ success: true, user: req.session.user });
+            return res.status(200).json({ success: true, user: user });
         }
 
     } catch (err) {
-        console.error("System Authentication Catch Block Error:", err);
-        return res.status(500).json({ success: false, error: "Internal server error during authentication process." });
+        console.error("Auth Catch Exception Stack Trace:", err);
+        return res.status(500).json({ success: false, error: "Internal server authentication exception error." });
     }
 });
-// ROUTE 3: Secure AI Chat Endpoint with Compulsory Paid Check Filter
+
+app.get('/logout', (req, res) => { req.session = null; res.redirect('/'); });
+
+// ROUTE 3: Secure AI Chat Endpoint with Premium Access Check Filter
 app.post('/api/chat', async (req, res) => {
     if (!req.session || !req.session.user) return res.status(401).json({ locked: true, error: "Please log in first." });
     const { messageText, partnerName } = req.body;
 
     try {
-        // Enforces payment access validation check against your database row state
         const { data: profile } = await supabase.from('dating_users').select('is_premium_unlocked').eq('id', req.session.user.id).single();
         if (!profile || !profile.is_premium_unlocked) {
             return res.status(200).json({ locked: true, msg: "Access locked. Subscription required." });
         }
 
-        if(!process.env.AI_API_KEY) return res.status(200).json({ locked: false, reply: `${partnerName}: Open AI API key is missing from your environment variables.` });
+        if(!process.env.AI_API_KEY) return res.status(200).json({ locked: false, reply: `${partnerName}: Open AI API key is missing from environment variables.` });
 
         const aiRes = await axios.post('https://api.openai.com/v1/chat/completions', {
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: `You are ${partnerName}, a beautiful, loving, and deeply attentive romantic partner on a dating application. Keep replies highly immersive and natural.` },
+                { role: "system", content: `You are ${partnerName}, a premium dating partner model. Attentive, immersive and warm.` },
                 { role: "user", content: messageText }
             ]
         }, { headers: { 'Authorization': `Bearer ${process.env.AI_API_KEY}` } });
@@ -154,7 +119,7 @@ app.post('/api/chat', async (req, res) => {
     } catch (err) { return res.status(200).json({ locked: true }); }
 });
 
-// ROUTE 4: Pesapal Payment STK Push Handler Link Hook
+// ROUTE 4: Pesapal Payment Token Generator and Checkout Order Submitter
 app.post('/api/pay-unlock', async (req, res) => {
     if (!req.session || !req.session.user) return res.status(401).json({ error: "Session expired." });
     const { amount, phone } = req.body;
@@ -166,7 +131,7 @@ app.post('/api/pay-unlock', async (req, res) => {
 
         const paymentPayload = {
             id: merchantRef, amount: parseFloat(amount), description: "Unlock 15 Premium Match Profiles",
-            billing_address: { email_address: req.session.user.email_address || `${req.session.user.username}@mail.com`, phone_number: phone, first_name: req.session.user.username, last_name: "Member" },
+            billing_address: { email_address: `${req.session.user.username}@mail.com`, phone_number: phone, first_name: req.session.user.username, last_name: "Member" },
             callback_url: `https://${req.get('host')}/api/pesapal-callback?userId=${req.session.user.id}`, notification_id: process.env.PESAPAL_IPN_ID
         };
 
