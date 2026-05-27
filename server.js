@@ -21,7 +21,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Supabase Environment variables initialization
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qzvjqfhfdrneaozntlpi.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_2a14UI2qXxQ10kIM4gRUKQ_bToLvrbp';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'postgresql://postgres:[YOUR-PASSWORD]@db.fezdfarrseinuumqzqqs.supabase.co:5432/postgres' 'sb_publishable_2a14UI2qXxQ10kIM4gRUKQ_bToLvrbp';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Pesapal parameters setup
