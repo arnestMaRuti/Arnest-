@@ -37,79 +37,95 @@ app.get('/', (req, res) => {
 // ROUTE 2: Authentication Handlers (Interacts with your existing user records)
 app.post('/api/auth', async (req, res) => {
     const { username, phone, isSignUp } = req.body;
+    
+    if (!username) {
+        return res.status(400).json({ success: false, error: "Username is required." });
+    }
+
     try {
         if (isSignUp) {
-            // 1. Check if the user already exists using common column variations
-            const { data: existing, error: checkError } = await supabase
+            // 1. Check if username or phone exists (Handles both potential column structures safely)
+            let existingUser = null;
+            
+            const { data: check1 } = await supabase.from('dating_users').select('*').eq('username', username).maybeSingle();
+            if (check1) existingUser = check1;
+
+            if (!existingUser) {
+                const { data: check2 } = await supabase.from('dating_users').select('*').eq('phone_number', phone).maybeSingle();
+                if (check2) existingUser = check2;
+            }
+
+            if (!existingUser) {
+                const { data: check3 } = await supabase.from('dating_users').select('*').eq('phone', phone).maybeSingle();
+                if (check3) existingUser = check3;
+            }
+
+            if (existingUser) {
+                return res.status(400).json({ success: false, error: "Username or phone number already exists." });
+            }
+
+            // 2. Run sequential registration insertion fallbacks
+            // STRATEGY A: Try standard 'phone_number' and 'email_address' layout
+            const { data: userA, error: errA } = await supabase
                 .from('dating_users')
-                .select('*')
-                .or(`username.eq.${username},phone_number.eq.${phone_number}`)
+                .insert([{ username: username, phone_number: phone, email_address: `${username}@mail.com`, is_premium_unlocked: false }])
+                .select()
                 .maybeSingle();
 
-            if (existing) {
-                return res.status(400).json({ success: false, error: "Username or Phone number already registered." });
+            if (!errA && userA) {
+                req.session.user = userA;
+                return res.status(200).json({ success: true, user: userA });
             }
 
-            // 2. Insert new profile using fallback column configurations to match your exact database structure
-            const { data: newUser, error: insertError } = await supabase
+            // STRATEGY B: Try simple 'phone' and 'email' layout fallback
+            const { data: userB, error: errB } = await supabase
                 .from('dating_users')
-                .insert([
-                    { 
-                        username: username, 
-                        phone_number: phone,            // Matches standard phone_number layout
-                        email_address: `${username}@mail.com`, 
-                        is_premium_unlocked: false      // Payment tracking row state
-                    }
-                ])
+                .insert([{ username: username, phone: phone, email: `${username}@mail.com`, is_premium_unlocked: false }])
                 .select()
-                .single();
+                .maybeSingle();
 
-            // If it fails, try a fallback schema structure in case your database columns are named differently
-            if (insertError) {
-                console.error("Primary insert failed, attempting database column fallback...", insertError);
-                
-                const { data: fallbackUser, error: fallbackError } = await supabase
-                    .from('dating_users')
-                    .insert([
-                        { 
-                            username: username, 
-                            phone: phone,               // Fallback: simple 'phone' instead of 'phone_number'
-                            email: `${username}@mail.com`, // Fallback: 'email' instead of 'email_address'
-                            is_premium_unlocked: false
-                        }
-                    ])
-                    .select()
-                    .single();
-
-                if (fallbackError) {
-                    console.error("Database schema mismatch error:", fallbackError);
-                    return res.status(400).json({ success: false, error: "Database structure mismatch. Please verify table column fields." });
-                }
-                
-                req.session.user = fallbackUser;
-            } else {
-                req.session.user = newUser;
+            if (!errB && userB) {
+                req.session.user = userB;
+                return res.status(200).json({ success: true, user: userB });
             }
+
+            // STRATEGY C: Minimalist approach (Just Username and Phone)
+            const { data: userC, error: errC } = await supabase
+                .from('dating_users')
+                .insert([{ username: username, phone_number: phone }])
+                .select()
+                .maybeSingle();
+
+            if (!errC && userC) {
+                req.session.user = userC;
+                return res.status(200).json({ success: true, user: userC });
+            }
+
+            // If everything fails, throw the explicit structural rejection trace
+            return res.status(400).json({ 
+                success: false, 
+                error: "Database column mismatch. Please verify that your table has columns named 'username' and either 'phone_number' or 'phone'." 
+            });
 
         } else {
-            // Sign In: Search for user by matching their unique username identity string
-            const { data: user, error: loginError } = await supabase
+            // LOGIN FLOW: Find the profile by username entry match
+            const { data: user, error: loginErr } = await supabase
                 .from('dating_users')
                 .select('*')
                 .eq('username', username)
                 .maybeSingle();
 
-            if (!user) {
+            if (loginErr || !user) {
                 return res.status(444).json({ success: false, error: "Profile username records not found." });
             }
+
             req.session.user = user;
+            return res.status(200).json({ success: true, user: req.session.user });
         }
 
-        return res.status(200).json({ success: true, user: req.session.user });
-
-    } catch(err) { 
-        console.error("System Authentication Error:", err);
-        return res.status(500).json({ success: false, error: "Authentication system error." }); 
+    } catch (err) {
+        console.error("System Authentication Catch Block Error:", err);
+        return res.status(500).json({ success: false, error: "Internal server error during authentication process." });
     }
 });
 // ROUTE 3: Secure AI Chat Endpoint with Compulsory Paid Check Filter
