@@ -23,11 +23,104 @@ app.set('views', path.join(__dirname, 'views'));
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qzvjqhfhdrneaozntlpi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_2al4UI2qxXq10kIM4gRUkQ_bToLvrbp';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Safaricom Daraja API Production Credentials
+const M_PESA_SHORTCODE = '9301663'; // e.g. Buy Goods Till Number
+const M_PESA_PASSKEY = 'PASTE_YOUR_LIPA_NA_MPESA_ONLINE_PASSKEY'; // Found in Daraja Portal
+const M_PESA_CONSUMER_KEY = '0tBDAtE3So3hwNr1xXIw9ux6apKRENUGQW02C9z8YUiC12yr';
+const M_PESA_CONSUMER_SECRET = 'l7WNEaFA7J5qfzrPY2FMnGQGjg7rLz9QSRFJwK88kPElbesLuScW98XIvKaOOos0';
 
-// Pesapal parameters setup
-const PESAPAL_CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
-const PESAPAL_CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
-const PESAPAL_URL = "https://cybersv.pesapal.com/api"; 
+// Helper Function: Generates the mandatory Safaricom Access Token
+async function getMpesaToken() {
+    const auth = Buffer.from(`${M_PESA_CONSUMER_KEY}:${M_PESA_CONSUMER_SECRET}`).toString('base64');
+    try {
+        const response = await axios.get('https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials', {
+            headers: { Authorization: `Basic ${auth}` }
+        });
+        return response.data.access_token;
+    } catch (err) {
+        console.error("Token Generation Failure:", err.response ? err.response.data : err.message);
+        throw new Error("Failed to authenticate with Safaricom API lines");
+    }
+}
+
+// ROUTE 4: Direct M-Pesa STK Push Trigger
+app.post('/api/pay-unlock', async (req, res) => {
+    if (!req.session || !req.session.user) return res.status(401).json({ error: "Session expired." });
+    
+    // Standardize input format (Removes local 0 and replaces with Kenya country code 254)
+    let rawPhone = req.body.phone.trim();
+    if (rawPhone.startsWith('0')) {
+        rawPhone = '254' + rawPhone.substring(1);
+    }
+    
+    const amount = 250; // Subscription Cost
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHmmss
+    
+    // Password encryption rule dictated by Safaricom API standards
+    const password = Buffer.from(`${M_PESA_SHORTCODE}${M_PESA_PASSKEY}${timestamp}`).toString('base64');
+
+    try {
+        const token = await getMpesaToken();
+        
+        const payload = {
+            BusinessShortCode: M_PESA_SHORTCODE, // Use your store number if using Buy Goods
+            Password: password,
+            Timestamp: timestamp,
+            TransactionType: "CustomerBuyGoodsOnline", // Change to "CustomerPayBillOnline" if using Paybill
+            Amount: amount,
+            PartyA: rawPhone, // Handset sending the money
+            PartyB: M_PESA_SHORTCODE, // Till number receiving the money
+            PhoneNumber: rawPhone,
+            CallBackURL: `https://${req.get('host')}/api/mpesa-callback`, // Your live listener route
+            AccountReference: "SoulAI Premium",
+            TransactionDesc: "Unlock Premium Match Chat Profiles"
+        };
+
+        const response = await axios.post('https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest', payload, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Response Code "0" means Safaricom accepted the request and pushed it to the device!
+        if (response.data.ResponseCode === "0") {
+            return res.status(200).json({ success: true, message: "STK Prompt pushed out successfully!" });
+        } else {
+            return res.status(400).json({ success: false, error: "STK Push generation rejected by gateway." });
+        }
+
+    } catch (err) {
+        console.error("STK Push Exception Error:", err.response ? err.response.data : err.message);
+        return res.status(500).json({ success: false, error: "Safaricom network line connection timed out." });
+    }
+});
+
+// ROUTE 5: Webhook CallBack URL Listener (Triggers when the user puts their PIN)
+app.post('/api/mpesa-callback', async (req, res) => {
+    const callbackData = req.body.Body.stkCallback;
+    console.log("Inbound Safaricom Callback Data:", JSON.stringify(callbackData));
+
+    // ResultCode 0 means transaction went through successfully!
+    if (callbackData.ResultCode === 0) {
+        // Pull the telephone number out of the payment data block metadata
+        const metaItems = callbackData.CallbackMetadata.Item;
+        const phoneItem = metaItems.find(item => item.Name === 'PhoneNumber');
+        const cleanPhone = '0' + phoneItem.Value.toString().substring(3); // Normalizes '2547...' back to '07...'
+
+        try {
+            // Instantly updates your user profile row inside Supabase
+            await supabase
+                .from('dating_users')
+                .update({ is_premium_unlocked: true })
+                .eq('phone', cleanPhone);
+                
+            console.log(`Success! Premium access unlocked for user profile line: ${cleanPhone}`);
+        } catch (dbErr) {
+            console.error("Database status write crash:", dbErr);
+        }
+    }
+    
+    // Safaricom expects a standard JSON receipt closure block
+    res.status(200).json({ ResultCode: 0, ResultDesc: "Callback data logged successfully" });
+});
 
 // ROUTE 1: Primary Gateway Router Control
 app.get('/', (req, res) => {
