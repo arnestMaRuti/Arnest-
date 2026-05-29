@@ -288,6 +288,23 @@
                 else alert("STK request timed out. Please check network line.");
             });
         }
+fetch('/api/pay-unlock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: '0740497404' }) // Binds the phone input parameter
+})
+.then(res => res.json())
+.then(data => {
+    if (data.success) {
+        alert("🔒 Please check your phone! An M-Pesa PIN prompt has been sent to your screen.");
+        
+        // Reload your UI after a short delay so they can chat with their premium model!
+        setTimeout(() => { window.location.reload(); }, 10000); 
+    } else {
+        alert("STK Push Error: " + data.error);
+    }
+})
+.catch(err => alert("Network line timeout error: " + err));
     </script>
 </body>
 </html>
