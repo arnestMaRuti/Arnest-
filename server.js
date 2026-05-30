@@ -17,8 +17,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // 🧪 SAFARICOM SANDBOX TESTING CREDENTIALS
 const M_PESA_SHORTCODE = '174379'; // Safaricom's Universal Test Shortcode
 const M_PESA_PASSKEY = 'bfb27a7dd976563a62964d56b9f76653fa33a9922072cbd2378a5e11902414c0'; // Universal Test Passkey
-const M_PESA_CONSUMER_KEY = 'YOUR_SANDBOX_CONSUMER_KEY'; // Get this from your Daraja Sandbox App
-const M_PESA_CONSUMER_SECRET = 'YOUR_SANDBOX_CONSUMER_SECRET'; // Get this from your Daraja Sandbox App
+const M_PESA_CONSUMER_KEY = '0tBDAtE3So3hwNr1xXIw9ux6apKRENUGQW02C9z8YUiC12yr'; // Get this from your Daraja Sandbox App
+const M_PESA_CONSUMER_SECRET = 'l7WNEaFA7J5qfzrPY2FMnGQGjg7rLz9QSRFJwK88kPElbesLuScW98XIvKaOOos0'; // Get this from your Daraja Sandbox App
 
 // Route to serve your index.html frontend layout page
 app.get('/', (req, res) => {
