@@ -5,35 +5,32 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-// ⚙️ Express settings for reading forms and JSON data
+// ⚙️ Express system parsers for reading form inputs and JSON data payloads
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🎨 Tell Express how to serve your EJS frontend templates
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+// 🎨 Tell Express to serve your static assets (CSS, images, frontend JS) out of public folder if you have one
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🗄️ Supabase Initialization
+// 🗄️ Supabase Cloud Storage Engine Connection Initialization
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qzvjqhfhdrneaozmtlpi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 📱 Safaricom M-Pesa Credentials
-const M_PESA_SHORTCODE = '9301663'; 
-const M_PESA_PASSKEY = process.env.M_PESA_PASSKEY || 'PASTE_YOUR_LIPA_NA_MPESA_ONLINE_PASSKEY'; 
-const M_PESA_CONSUMER_KEY = process.env.M_PESA_CONSUMER_KEY || 'OtBDAcE3So3hwNr1xXIw9ux6apKRENUGQW02CDz8YU1C12yr';
-const M_PESA_CONSUMER_SECRET = process.env.M_PESA_CONSUMER_SECRET || '17vNEaFA7JSqfzrPY2FMnGQGjg7rlz9QSRFJuK8KKPElbesIuSck9BXIvKa0OosO';
+// 📱 Safaricom M-Pesa Daraja Production API Credentials (Hardcoded from your repo setup)
+const M_PESA_SHORTCODE = '9301663'; // Your verified Buy Goods Till Store Number
+const M_PESA_CONSUMER_KEY = 'OtBDAcE3So3hwNr1xXIw9ux6apKRENUGQW02CDz8YU1C12yr';
+const M_PESA_CONSUMER_SECRET = '17vNEaFA7JSqfzrPY2FMnGQGjg7rlz9QSRFJuK8KKPElbesIuSck9BXIvKa0OosO';
 
-// ==========================================
-// 1. SERVE THE MAIN FRONTEND PAGE ROUTE
-// ==========================================
+// =======================================================
+// 🛠️ FIX: SERVE THE MAIN FRONTEND PAGE ROUTE
+// =======================================================
 app.get('/', (req, res) => {
-    // This looks for 'index.ejs' inside your 'views' folder and displays it!
-    res.render('index'); 
+    // This sends your plain index.html layout file directly to the web browser
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Helper Function: Generates Safaricom OAuth Access Token
+// Helper Function: Generates the mandatory Safaricom OAuth Gateway Access Token
 async function getMpesaToken() {
     const auth = Buffer.from(`${M_PESA_CONSUMER_KEY}:${M_PESA_CONSUMER_SECRET}`).toString('base64');
     try {
@@ -42,20 +39,21 @@ async function getMpesaToken() {
         });
         return response.data.access_token;
     } catch (err) {
-        console.error("Token Generation Failure:", err.message);
-        throw new Error("Failed to authenticate with Safaricom");
+        console.error("Safaricom Token Generation Failed:", err.message);
+        throw new Error("Failed to authenticate with Safaricom Developer API lines.");
     }
 }
 
-// ==========================================
-// 2. M-PESA STK PUSH TRIGGER ROUTE
-// ==========================================
+// =======================================================
+// 💰 M-PESA STK PUSH TRIGGER ROUTE (Customer Buy Goods Online)
+// =======================================================
 app.post('/api/pay-unlock', async (req, res) => {
     let rawPhone = req.body.phone ? req.body.phone.trim() : '';
     if (!rawPhone) {
-        return res.status(400).json({ success: false, error: "Phone number is required." });
+        return res.status(400).json({ success: false, error: "Phone number parameter is required." });
     }
     
+    // Standardize local dial numbers to Kenya Country Code format (e.g. 07... to 2547...)
     rawPhone = rawPhone.replace(/\+/g, '');
     if (rawPhone.startsWith('0')) {
         rawPhone = '254' + rawPhone.substring(1);
@@ -63,9 +61,17 @@ app.post('/api/pay-unlock', async (req, res) => {
         rawPhone = '254' + rawPhone;
     }
     
-    const amount = 250; 
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); 
-    const password = Buffer.from(`${M_PESA_SHORTCODE}${M_PESA_PASSKEY}${timestamp}`).toString('base64');
+    const amount = 100; // Pricing setup to match your layout card
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHmmss
+    
+    // Grabs your secret passkey securely from Render's vault environment
+    const passkey = process.env.M_PESA_PASSKEY; 
+    if (!passkey || passkey.startsWith('PASTE_YOUR')) {
+        return res.status(500).json({ success: false, error: "Server Configuration Error: Missing M_PESA_PASSKEY on Render Dashboard." });
+    }
+
+    // Encrypt security password sequence using standard Safaricom specification mapping
+    const password = Buffer.from(`${M_PESA_SHORTCODE}${passkey}${timestamp}`).toString('base64');
 
     try {
         const token = await getMpesaToken();
@@ -74,14 +80,14 @@ app.post('/api/pay-unlock', async (req, res) => {
             BusinessShortCode: M_PESA_SHORTCODE,
             Password: password,
             Timestamp: timestamp,
-            TransactionType: "CustomerBuyGoodsOnline", 
+            TransactionType: "CustomerBuyGoodsOnline", // Explicit transaction type for Till Numbers
             Amount: amount,
-            PartyA: rawPhone, 
+            PartyA: rawPhone,
             PartyB: M_PESA_SHORTCODE, 
             PhoneNumber: rawPhone,
-            CallBackURL: `https://${req.get('host')}/api/mpesa-callback`, 
-            AccountReference: "Soulmate Premium",
-            TransactionDesc: "Unlock Deep Conversations"
+            CallBackURL: `https://${req.get('host')}/api/mpesa-callback`, // Dynamic webhook link matching host domain
+            AccountReference: "Soulmate Premium Room",
+            TransactionDesc: "Unlock Chat Application Systems Access"
         };
 
         const response = await axios.post('https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest', payload, {
@@ -89,44 +95,54 @@ app.post('/api/pay-unlock', async (req, res) => {
         });
 
         if (response.data.ResponseCode === "0") {
-            return res.status(200).json({ success: true, message: "STK Prompt pushed out successfully!" });
+            return res.status(200).json({ success: true, message: "STK PIN prompt triggered successfully!" });
         } else {
-            return res.status(400).json({ success: false, error: "STK Push generation rejected by Safaricom." });
+            return res.status(400).json({ success: false, error: "STK request rejected by network line." });
         }
 
     } catch (err) {
-        console.error("STK Push Exception Error:", err.response ? err.response.data : err.message);
-        return res.status(500).json({ success: false, error: "Safaricom network connection timeout." });
+        console.error("STK Push Execution Error Logs:", err.response ? err.response.data : err.message);
+        return res.status(500).json({ success: false, error: "Safaricom payment bridge gateway link timeout." });
     }
 });
 
-// ==========================================
-// 3. MPESA CALLBACK WEBHOOK ROUTER
-// ==========================================
+// =======================================================
+// 📡 MPESA WEBHOOK CALLBACK LISTENER (Updates Supabase Data)
+// =======================================================
 app.post('/api/mpesa-callback', async (req, res) => {
     try {
         const callbackData = req.body.Body.stkCallback;
+        console.log("Inbound Callback Verified:", JSON.stringify(callbackData));
+
+        // ResultCode 0 explicitly means the user typed their true M-Pesa PIN and funds cleared!
         if (callbackData.ResultCode === 0) {
             const metaItems = callbackData.CallbackMetadata.Item;
             const phoneItem = metaItems.find(item => item.Name === 'PhoneNumber');
             const receiptItem = metaItems.find(item => item.Name === 'MpesaReceiptNumber');
             
-            const cleanPhone = '0' + phoneItem.Value.toString().substring(3); 
+            const cleanPhone = '0' + phoneItem.Value.toString().substring(3); // Normalizes back to 07... format
             const receiptCode = receiptItem.Value;
 
-            await supabase
+            // Direct data synchronization to update the database state row lines
+            const { data, error } = await supabase
                 .from('dating_users')
-                .update({ is_premium_unlocked: true, mpesa_receipt: receiptCode })
+                .update({ 
+                    is_premium_unlocked: true, 
+                    mpesa_receipt: receiptCode 
+                })
                 .eq('phone', cleanPhone);
                 
-            console.log(`Success! Premium access unlocked for user: ${cleanPhone}`);
+            if (error) throw error;
+            console.log(`Database sync success. Profile ${cleanPhone} upgraded via receipt record ${receiptCode}.`);
         }
     } catch (err) {
-        console.error("Callback database writing error:", err.message);
+        console.error("Background Webhook Database Writing Error:", err.message);
     }
-    res.status(200).json({ ResultCode: 0, ResultDesc: "Callback processed successfully" });
+    
+    // Safaricom demands a fast HTTP 200 JSON receipt response status code to close transaction cycles
+    res.status(200).json({ ResultCode: 0, ResultDesc: "Callback parsed successfully." });
 });
 
-// Start Application Container
-const PORT = process.env.PORT || 3000;
+// Execute and listen on server container deployment port
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server running successfully on port ${PORT}`));
